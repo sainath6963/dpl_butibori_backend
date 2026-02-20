@@ -1,25 +1,18 @@
-import express from "express";
+import express from 'express';
 import {
-  forgotPassword,
-  getUser,
-  login,
-  logout,
-  register,
-  resetPassword,
-  updatePassword,
-  verifyOTP,
-} from "../controllers/authController.js";
-import { isAuthenticated } from "../middlewares/authMiddleware.js";
+    registerUser,
+    loginUser,
+    logout,
+    getUserProfile
+} from '../controllers/authController.js';
+import { isAuthenticatedUser } from '../middlewares/authMiddleware.js';
+import { validateRegistration, validateLogin } from '../utils/validators.js';
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/verify-otp", verifyOTP);
-router.post("/login", login);
-router.get("/logout", isAuthenticated, logout);
-router.get("/me", isAuthenticated, getUser);
-router.post("/password/forgot", forgotPassword);
-router.put("/password/reset/:token", resetPassword);
-router.put("/password/update", isAuthenticated , updatePassword);
+router.post('/register', validateRegistration, registerUser);
+router.post('/login', validateLogin, loginUser);
+router.get('/logout', isAuthenticatedUser, logout);
+router.get('/profile', isAuthenticatedUser, getUserProfile);
 
 export default router;

@@ -1,29 +1,43 @@
-const PDFDocument = require("pdfkit");
-const fs = require("fs");
-const path = require("path");
+class InvoiceService {
+    generateInvoiceNumber() {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000);
+        return `INV-${timestamp}-${random}`;
+    }
 
-exports.generateInvoice = (player, payment) => {
-  return new Promise((resolve) => {
-    const fileName = `invoice_${player._id}.pdf`;
-    const filePath = path.join(
-      __dirname,
-      "../invoices",
-      fileName
-    );
+    async generateInvoice(payment, user, player) {
+        try {
+            // In production, generate PDF here
+            const invoiceNumber = this.generateInvoiceNumber();
+            
+            // Return invoice data (would be PDF URL in production)
+            return {
+                invoiceNumber,
+                generatedAt: new Date().toISOString(),
+                paymentDetails: {
+                    amount: payment.amount,
+                    currency: payment.currency,
+                    paymentId: payment.razorpayPaymentId,
+                    paidAt: payment.paidAt
+                },
+                userDetails: {
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone
+                },
+                playerDetails: {
+                    name: player.fullName,
+                    role: player.playerRole,
+                    battingStyle: player.battingStyle
+                },
+                // URL where invoice can be downloaded (in production)
+                invoiceUrl: `${process.env.FRONTEND_URL}/invoices/${invoiceNumber}.pdf`
+            };
+        } catch (error) {
+            throw new Error(`Invoice generation failed: ${error.message}`);
+        }
+    }
+}
 
-    const doc = new PDFDocument();
-    doc.pipe(fs.createWriteStream(filePath));
-
-    doc.fontSize(18).text("Cricket Tournament Invoice");
-    doc.moveDown();
-
-    doc.text(`Player: ${player.name}`);
-    doc.text(`Team: ${player.teamName}`);
-    doc.text(`Payment ID: ${payment.paymentId}`);
-    doc.text(`Amount: ₹${payment.amount}`);
-
-    doc.end();
-
-    resolve(filePath);
-  });
-};
+const invoiceService = new InvoiceService();
+export default invoiceService;

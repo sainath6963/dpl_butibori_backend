@@ -1,42 +1,47 @@
-import express from "express";
-import { config } from "dotenv";
-import cookieParser from "cookie-parser";
-import cors from "cors"
-import { connectDB } from "./database/db.js";
-import {errorMiddleware} from "./middlewares/errorMiddlewares.js"
-import authrouter from "./routes/authRouter.js"
-import userRouter from "./routes/userRouter.js"
-import expressfileupload from "express-fileupload"
-import { notifyUsers } from "./services/notifyUsers.js";
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
-export const app = express();
+import errorMiddleware from './middlewares/errorMiddlewares.js';
 
-config({path:"./config/config.env"})
+// Import all routes
+import authRouter from './routes/authRouter.js';
+import userRouter from './routes/userRouter.js';
+import playerRouter from './routes/playerRouter.js';
+import paymentRouter from './routes/paymentRouter.js';
+import webhookRouter from './routes/webhookRouter.js';
 
+const app = express();
 
-app.use(cors({
-    origin:"https://library.butiborichatadka.in",
-    methods:["GET" ,"POST" , "PUT" , "DELETE"],
-    credentials: true,
-}))
-
+// Regular express JSON parser for normal routes
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
-app.use(express.json());
 
-app.use(express.urlencoded({extended:true}));
+// CORS configuration
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
 
-app.use(expressfileupload({
-    useTempFiles:true,
-    tempFileDir:"/temp/"
-}))
+// Use routes
+app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
+app.use('/api/players', playerRouter);
+app.use('/api/payments', paymentRouter);
+app.use('/api/webhook', webhookRouter);
 
-app.use("/api/v1/auth",authrouter )
-app.use("/api/v1/user" , userRouter)
-app.use("/api/v1/payment", require("./routes/paymentRouter.js"));
-app.use("/api/v1/webhook", require("./routes/webhookRouter.js"));
+// Health check route
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'Server is running',
+        time: new Date().toISOString()
+    });
+});
 
-notifyUsers();
-connectDB();
-
-
+// Middleware for errors
 app.use(errorMiddleware);
+
+export default app;

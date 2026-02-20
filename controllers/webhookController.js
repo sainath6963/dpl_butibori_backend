@@ -1,66 +1,104 @@
-const crypto = require("crypto");
-const Player = require("../models/playerModel");
-const Payment = require("../models/paymentModel");
-const { generateInvoice } = require("../services/invoiceService");
-const { sendEmail } = require("../services/emailService");
+import Payment from '../models/paymentModel.js';
+import Player from '../models/playerModel.js';
+import crypto from 'crypto';
+import catchAsyncErrors from '../middlewares/catchAsyncErrors.js';
 
-exports.handleWebhook = async (req, res) => {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-
-  const signature = req.headers["x-razorpay-signature"];
-
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(req.body)
-    .digest("hex");
-
-  if (expected !== signature) {
-    return res.status(400).json({ message: "Invalid signature" });
-  }
-
-  const event = JSON.parse(req.body);
-
-  if (event.event === "payment.captured") {
-    const paymentData = event.payload.payment.entity;
-
-    const player = await Player.findOne({
-      razorpayOrderId: paymentData.order_id,
-    });
-
-    if (!player) return res.json({});
-
-    if (player.paymentStatus === "SUCCESS") return res.json({});
-
-    // Update Player
-    player.paymentStatus = "SUCCESS";
-    player.razorpayPaymentId = paymentData.id;
-
-    // Save Payment
-    const payment = await Payment.create({
-      playerId: player._id,
-      orderId: paymentData.order_id,
-      paymentId: paymentData.id,
-      amount: paymentData.amount / 100,
-      status: "SUCCESS",
-    });
-
-    // Generate Invoice
-    const invoicePath = await generateInvoice(
-      player,
-      payment
-    );
-
-    player.invoicePath = invoicePath;
-    await player.save();
-
-    // Send Email
-    await sendEmail(
-      player.email,
-      "Tournament Registration Success",
-      "Payment successful. Invoice attached.",
-      invoicePath
-    );
-  }
-
-  res.json({ received: true });
+// Verify webhook signature
+const verifyWebhookSignature = (body, signature, secret) => {
+    const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(JSON.stringify(body))
+        .digest('hex');
+    
+    return expectedSignature === signature;
 };
+
+// Handle Razorpay webhooks
+export const handleRazorpayWebhook = catchAsyncErrors(async (req, res, next) => {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const signature = req.headers['x-razorpay-signature'];
+
+    // Verify webhook signature
+    if (!verifyWebhookSignature(req.body, signature, webhookSecret)) {
+        return res.status(400).json({ success: false, message: 'Invalid signature' });
+    }
+
+    const event = req.body.event;
+    const payload = req.body.payload;
+
+    switch (event) {
+        case 'payment.captured':
+            await handlePaymentCaptured(payload);
+            break;
+            
+        case 'payment.failed':
+            await handlePaymentFailed(payload);
+            break;
+            
+        case 'order.paid':
+            await handleOrderPaid(payload);
+            break;
+            
+        default:
+            console.log(`Unhandled webhook event: ${event}`);
+    }
+
+    // Always respond with success to acknowledge webhook receipt
+    res.status(200).json({ success: true, received: true });
+});
+
+// Handle payment captured
+async function handlePaymentCaptured(payload) {
+    const paymentEntity = payload.payment.entity;
+    const orderId = paymentEntity.order_id;
+    const paymentId = paymentEntity.id;
+
+    // Find payment record
+    const payment = await Payment.findOne({ razorpayOrderId: orderId });
+
+    if (payment && payment.status !== 'paid') {
+        payment.razorpayPaymentId = paymentId;
+        payment.status = 'paid';
+        payment.paidAt = new Date();
+        await payment.save();
+
+        // Update player status
+        const player = await Player.findById(payment.player);
+        if (player) {
+            player.registrationStatus = 'registered';
+            await player.save();
+        }
+
+        console.log(`Payment captured: ${paymentId}`);
+    }
+}
+
+// Handle payment failed
+async function handlePaymentFailed(payload) {
+    const paymentEntity = payload.payment.entity;
+    const orderId = paymentEntity.order_id;
+
+    const payment = await Payment.findOne({ razorpayOrderId: orderId });
+
+    if (payment) {
+        payment.status = 'failed';
+        await payment.save();
+
+        console.log(`Payment failed: ${paymentEntity.id}`);
+    }
+}
+
+// Handle order paid
+async function handleOrderPaid(payload) {
+    const orderEntity = payload.order.entity;
+    const orderId = orderEntity.id;
+
+    const payment = await Payment.findOne({ razorpayOrderId: orderId });
+
+    if (payment) {
+        payment.status = 'attempted';
+        await payment.save();
+
+        console.log(`Order paid: ${orderId}`);
+    }
+}

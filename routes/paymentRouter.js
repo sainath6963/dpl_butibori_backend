@@ -1,15 +1,24 @@
-const express = require("express");
+import express from 'express';
+import {
+    createPaymentOrder,
+    verifyPayment,
+    getPaymentStatus,
+    getUserPayments,
+    getAllPayments,
+    processRefund
+} from '../controllers/paymentController.js';
+import { isAuthenticatedUser, authorizeRoles } from '../middlewares/authMiddleware.js';
+
 const router = express.Router();
 
-const {
-  registerPlayer,
-  verifyPayment,
-} = require("../controllers/paymentController");
+// User routes
+router.post('/create-order', isAuthenticatedUser, createPaymentOrder);
+router.post('/verify', isAuthenticatedUser, verifyPayment);
+router.get('/status/:id', isAuthenticatedUser, getPaymentStatus);
+router.get('/my-payments', isAuthenticatedUser, getUserPayments);
 
-// Register player + create Razorpay order
-router.post("/register", registerPlayer);
+// Admin routes
+router.get('/admin/all', isAuthenticatedUser, authorizeRoles('admin'), getAllPayments);
+router.post('/admin/refund/:id', isAuthenticatedUser, authorizeRoles('admin'), processRefund);
 
-// Verify payment (frontend fallback)
-router.post("/verify", verifyPayment);
-
-module.exports = router;
+export default router;
