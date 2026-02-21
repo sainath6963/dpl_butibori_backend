@@ -3,27 +3,32 @@ import crypto from "crypto";
 
 class RazorpayService {
   constructor() {
-    if (
-      process.env.RAZORPAY_KEY_ID &&
-      process.env.RAZORPAY_KEY_SECRET
-    ) {
-      this.razorpay = new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID,
-        key_secret: process.env.RAZORPAY_KEY_SECRET,
-      });
-
-      console.log("✅ Razorpay initialized");
-    } else {
-      this.razorpay = null;
-      console.log("⚠️ Razorpay keys missing — running without payments");
-    }
+    this.razorpay = null;
   }
 
-  // Create order
-  async createOrder(amount, currency = "INR", receipt) {
-    if (!this.razorpay) {
-      throw new Error("Razorpay not configured");
+  // 🔥 Lazy initialize Razorpay
+  init() {
+    if (this.razorpay) return;
+
+    const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+      throw new Error("Razorpay keys are not configured");
     }
+
+    this.razorpay = new Razorpay({
+      key_id: RAZORPAY_KEY_ID,
+      key_secret: RAZORPAY_KEY_SECRET,
+    });
+
+    console.log("✅ Razorpay initialized");
+  }
+
+  // ==============================
+  // Create order
+  // ==============================
+  async createOrder(amount, currency = "INR", receipt) {
+    this.init();
 
     const options = {
       amount: amount * 100,
@@ -35,44 +40,54 @@ class RazorpayService {
     try {
       return await this.razorpay.orders.create(options);
     } catch (error) {
-      throw new Error(`Razorpay Order Creation Failed: ${error.message}`);
+      throw new Error(
+        `Razorpay Order Creation Failed: ${error.message}`
+      );
     }
   }
 
+  // ==============================
   // Verify payment signature
+  // ==============================
   verifyPaymentSignature(orderId, paymentId, signature) {
-    if (!process.env.RAZORPAY_KEY_SECRET) {
+    const { RAZORPAY_KEY_SECRET } = process.env;
+
+    if (!RAZORPAY_KEY_SECRET) {
       throw new Error("Razorpay not configured");
     }
 
     const body = orderId + "|" + paymentId;
 
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", RAZORPAY_KEY_SECRET)
       .update(body.toString())
       .digest("hex");
 
     return expectedSignature === signature;
   }
 
+  // ==============================
   // Get payment details
+  // ==============================
   async getPaymentDetails(paymentId) {
-    if (!this.razorpay) {
-      throw new Error("Razorpay not configured");
-    }
-
+    this.init();
     return await this.razorpay.payments.fetch(paymentId);
   }
 
+  // ==============================
   // Refund payment
+  // ==============================
   async refundPayment(paymentId, amount = null) {
-    if (!this.razorpay) {
-      throw new Error("Razorpay not configured");
-    }
+    this.init();
 
-    const refundOptions = amount ? { amount: amount * 100 } : {};
+    const refundOptions = amount
+      ? { amount: amount * 100 }
+      : {};
 
-    return await this.razorpay.payments.refund(paymentId, refundOptions);
+    return await this.razorpay.payments.refund(
+      paymentId,
+      refundOptions
+    );
   }
 }
 

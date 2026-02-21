@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import errorMiddleware from './middlewares/errorMiddlewares.js';
+import videoRoutes from "./routes/videoRoutes.js";
 
 // Import all routes
 import authRouter from './routes/authRouter.js';
@@ -31,6 +32,7 @@ app.use('/api/users', userRouter);
 app.use('/api/players', playerRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/webhook', webhookRouter);
+app.use("/api/videos", videoRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
