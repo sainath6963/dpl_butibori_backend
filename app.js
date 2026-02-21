@@ -1,10 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-
+import fileUpload from "express-fileupload";
 import errorMiddleware from './middlewares/errorMiddlewares.js';
 import videoRoutes from "./routes/videoRoutes.js";
-
+import path from "path";
 // Import all routes
 import authRouter from './routes/authRouter.js';
 import userRouter from './routes/userRouter.js';
@@ -18,6 +18,13 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+app.use(fileUpload());
+
+// ✅ Serve uploaded files
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+//     useTempFiles: true,
+//     tempFileDir: "/tmp/",
+// }));
 
 // CORS configuration
 app.use(cors({
