@@ -8,65 +8,37 @@ import catchAsyncErrors from '../middlewares/catchAsyncErrors.js';
 import ErrorHandler from '../utils/errorHandler.js';
 
 // Registration fee amount (in INR)
-const REGISTRATION_FEE = 500; // Change as needed
+const REGISTRATION_FEE = 5; // Change as needed
 
 // Create payment order
 export const createPaymentOrder = catchAsyncErrors(async (req, res, next) => {
-    const { playerId } = req.body;
 
-    // Check if player exists and belongs to user
-    const player = await Player.findOne({ 
-        _id: playerId, 
-        user: req.user.id 
-    });
+    console.log("📥 Registration Form Data:", req.body);
 
-    if (!player) {
-        return next(new ErrorHandler('Player profile not found', 404));
-    }
+    const receipt = `rcpt_${Date.now()}`;
 
-    // Check if payment already exists and is paid
-    if (player.registrationStatus === 'registered' || player.registrationStatus === 'payment-pending') {
-        return next(new ErrorHandler('Registration already in progress or completed', 400));
-    }
-
-    // Create unique receipt ID
-    const receipt = `rcpt_${player._id}_${Date.now()}`;
-
-    // Create Razorpay order
     const order = await razorpayService.createOrder(
         REGISTRATION_FEE,
-        'INR',
+        "INR",
         receipt
     );
 
-    // Create payment record
+    // Store form data temporarily
     const payment = await Payment.create({
-        user: req.user.id,
-        player: player._id,
         razorpayOrderId: order.id,
         amount: REGISTRATION_FEE,
-        currency: 'INR',
-        status: 'created',
+        currency: "INR",
+        status: "created",
         metadata: {
-            playerName: player.fullName,
-            userEmail: req.user.email
+            formData: req.body   // ⭐ STORE COMPLETE FORM
         }
     });
 
-    // Update player registration status
-    player.registrationStatus = 'payment-pending';
-    player.payment = payment._id;
-    await player.save();
-
     res.status(200).json({
         success: true,
-        order: {
-            id: order.id,
-            amount: order.amount,
-            currency: order.currency,
-            keyId: process.env.RAZORPAY_KEY_ID
-        },
-        paymentId: payment._id
+        order,
+        paymentId: payment._id,
+        key: process.env.RAZORPAY_KEY_ID
     });
 });
 
@@ -80,9 +52,8 @@ export const verifyPayment = catchAsyncErrors(async (req, res, next) => {
     } = req.body;
 
     // Find payment
-    const payment = await Payment.findById(paymentId)
-        .populate('user')
-        .populate('player');
+  const payment = await Payment.findById(paymentId)
+    .populate('player');
 
     if (!payment) {
         return next(new ErrorHandler('Payment record not found', 404));
@@ -113,29 +84,93 @@ export const verifyPayment = catchAsyncErrors(async (req, res, next) => {
     
     await payment.save();
 
-    // Update player registration status
-    const player = await Player.findById(payment.player._id);
-    player.registrationStatus = 'registered';
-    await player.save();
+// ================= CREATE PLAYER AFTER PAYMENT =================
+
+const formData = payment.metadata.formData;
+
+const convertBool = (val) => val === "true" || val === true;
+
+let parsedTournaments = [];
+let parsedMOM = [];
+let parsedMOS = [];
+
+try {
+    parsedTournaments = formData.tournaments
+        ? JSON.parse(formData.tournaments)
+        : [];
+
+    parsedMOM = formData.manOfTheMatchDetails
+        ? JSON.parse(formData.manOfTheMatchDetails)
+        : [];
+
+    parsedMOS = formData.manOfTheSeriesDetails
+        ? JSON.parse(formData.manOfTheSeriesDetails)
+        : [];
+} catch (err) {
+    console.log("JSON Parse Error:", err.message);
+}
+
+const player = await Player.create({
+    fullName: formData.fullName,
+    email: formData.email,
+    address: formData.address,
+    mobileNumber: formData.mobileNumber,
+    height: formData.height,
+    weight: formData.weight,
+    aadharNumber: formData.aadharNumber,
+    dateOfBirth: formData.dateOfBirth,
+
+    isBatsman: convertBool(formData.isBatsman),
+    isBowler: convertBool(formData.isBowler),
+    battingHand: formData.battingHand || undefined,
+    bowlingArm: formData.bowlingArm || undefined,
+    bowlingType: formData.bowlingType || undefined,
+    isWicketKeeper: convertBool(formData.isWicketKeeper),
+
+    playedTournament: convertBool(formData.playedTournament),
+    tournaments: parsedTournaments,
+
+    manOfTheMatch: convertBool(formData.manOfTheMatch),
+    manOfTheMatchDetails: parsedMOM,
+
+    manOfTheSeries: convertBool(formData.manOfTheSeries),
+    manOfTheSeriesDetails: parsedMOS,
+
+    documents: {
+        playerPhoto: null,
+        aadharCard: null,
+        panCard: null,
+        drivingLicense: null
+    },
+
+    registrationStatus: "registered",
+    payment: payment._id
+});
+
+// Link player to payment
+payment.player = player._id;
+await payment.save();
 
     // Generate invoice
-    const invoice = await invoiceService.generateInvoice(
-        payment,
-        payment.user,
-        payment.player
-    );
+   const invoice = await invoiceService.generateInvoice(
+    payment,
+    null,
+    player
+);
     
     payment.invoiceGenerated = true;
     payment.invoiceUrl = invoice.invoiceUrl;
     await payment.save();
 
     // Send notifications
-    await notificationService.sendPaymentSuccess(payment.user, payment);
-    await notificationService.sendRegistrationSuccess(
-        payment.user,
-        payment.player,
-        payment
-    );
+    await notificationService.sendPaymentSuccess(null, payment);
+
+await notificationService.sendRegistrationSuccess(
+    null,
+    player,
+    payment
+);
+   
 
     res.status(200).json({
         success: true,

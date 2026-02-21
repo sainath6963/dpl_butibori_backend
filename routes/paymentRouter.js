@@ -12,10 +12,10 @@ import { isAuthenticatedUser, authorizeRoles } from '../middlewares/authMiddlewa
 const router = express.Router();
 
 // User routes
-router.post('/create-order', isAuthenticatedUser, createPaymentOrder);
+router.post('/create-order', createPaymentOrder);
 router.post('/verify', isAuthenticatedUser, verifyPayment);
 router.get('/status/:id', isAuthenticatedUser, getPaymentStatus);
-router.get('/my-payments', isAuthenticatedUser, getUserPayments);
+router.get('/my-payments',  getUserPayments);
 
 // Admin routes
 router.get('/admin/all', isAuthenticatedUser, authorizeRoles('admin'), getAllPayments);

@@ -5,115 +5,191 @@ import ErrorHandler from '../utils/errorHandler.js';
 import path from "path";
 import fs from "fs";
 export const registerPlayer = catchAsyncErrors(async (req, res, next) => {
+  console.log("📥 Incoming Register Player Request");
 
-    const {
-        fullName,
-        email,
-        address,
-        mobileNumber,
-        height,
-        weight,
-        aadharNumber,
-        dateOfBirth,
-        isBatsman,
-        isBowler,
-        battingHand,
-        bowlingArm,
-        bowlingType,
-        isWicketKeeper,
-        playedTournament,
-        tournaments,
-        manOfTheMatch,
-        manOfTheMatchDetails,
-        manOfTheSeries,
-        manOfTheSeriesDetails
-    } = req.body;
+  // ================= BODY =================
+  console.log("🧾 req.body →", req.body);
 
-    const existingPlayer = await Player.findOne({ user: req.user.id });
-    if (existingPlayer) {
-        return next(new ErrorHandler("You already have a player profile", 400));
-    }
+  const {
+    fullName,
+    email,
+    address,
+    mobileNumber,
+    height,
+    weight,
+    aadharNumber,
+    dateOfBirth,
+    isBatsman,
+    isBowler,
+    battingHand,
+    bowlingArm,
+    bowlingType,
+    isWicketKeeper,
+    playedTournament,
+    tournaments,
+    manOfTheMatch,
+    manOfTheMatchDetails,
+    manOfTheSeries,
+    manOfTheSeriesDetails,
+  } = req.body;
 
-    if (!req.files || !req.files.playerPhoto) {
-        return next(new ErrorHandler("Player photo is required", 400));
-    }
+  // ================= FILES =================
+  console.log("📂 req.files →", req.files);
 
-    const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!req.files || !req.files.playerPhoto) {
+    console.log("❌ Player photo missing");
+    return next(new ErrorHandler("Player photo is required", 400));
+  }
 
-    const saveFile = async (file) => {
-        const fileName = `${Date.now()}_${file.name}`;
-        const uploadPath = path.join(uploadsDir, fileName);
-        await file.mv(uploadPath);
-        return `/uploads/${fileName}`;
-    };
+  // ================= DUPLICATE CHECK =================
+  console.log("🔍 Checking duplicate player...");
 
-    const photoPath = await saveFile(req.files.playerPhoto);
+  const existingPlayer = await Player.findOne({
+    $or: [{ aadharNumber }, { mobileNumber }, { email }],
+  });
 
-    let aadharPath = null;
-    let panPath = null;
-    let licensePath = null;
+  if (existingPlayer) {
+    console.log("❌ Duplicate player found:", existingPlayer._id);
+    return next(new ErrorHandler("Player already registered", 400));
+  }
 
-    if (req.files.aadharCard) {
-        aadharPath = await saveFile(req.files.aadharCard);
-    }
+  console.log("✅ No duplicate player");
 
-    if (req.files.panCard) {
-        panPath = await saveFile(req.files.panCard);
-    }
+  // ================= UPLOAD DIR =================
+  const uploadsDir = path.join(process.cwd(), "uploads");
 
-    if (req.files.drivingLicense) {
-        licensePath = await saveFile(req.files.drivingLicense);
-    }
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log("📁 Uploads folder created");
+  }
 
-    const convertBool = (val) => val === "true" || val === true;
+  // ================= FILE SAVE FUNCTION =================
+  const saveFile = async (file) => {
+    console.log("⬆️ Saving file:", file.name);
 
-    const player = await Player.create({
-        user: req.user.id,
-        fullName,
-        email,
-        address,
-        mobileNumber,
-        height,
-        weight,
-        aadharNumber,
-        dateOfBirth,
+    const fileName = `${Date.now()}_${file.name}`;
+    const uploadPath = path.join(uploadsDir, fileName);
 
-        isBatsman: convertBool(isBatsman),
-        isBowler: convertBool(isBowler),
-        battingHand,
-        bowlingArm,
-        bowlingType,
-        isWicketKeeper: convertBool(isWicketKeeper),
+    await file.mv(uploadPath);
 
-        playedTournament: convertBool(playedTournament),
-        tournaments: tournaments ? JSON.parse(tournaments) : [],
+    console.log("✅ File saved:", fileName);
 
-        manOfTheMatch: convertBool(manOfTheMatch),
-        manOfTheMatchDetails: manOfTheMatchDetails
-            ? JSON.parse(manOfTheMatchDetails)
-            : [],
+    return `/uploads/${fileName}`;
+  };
 
-        manOfTheSeries: convertBool(manOfTheSeries),
-        manOfTheSeriesDetails: manOfTheSeriesDetails
-            ? JSON.parse(manOfTheSeriesDetails)
-            : [],
+  // ================= SAVE FILES =================
+  const photoPath = await saveFile(req.files.playerPhoto);
 
-        documents: {
-            playerPhoto: photoPath,
-            aadharCard: aadharPath,
-            panCard: panPath,
-            drivingLicense: licensePath
-        }
+  const aadharPath = req.files.aadharCard
+    ? await saveFile(req.files.aadharCard)
+    : null;
 
-        // ❌ No payment fields here anymore
-        // registrationStatus will default to "payment-pending"
-    });
+  const panPath = req.files.panCard
+    ? await saveFile(req.files.panCard)
+    : null;
 
-    res.status(201).json({
-        success: true,
-        message: "Player registered successfully. Please complete payment.",
-        player
-    });
+  const licensePath = req.files.drivingLicense
+    ? await saveFile(req.files.drivingLicense)
+    : null;
+
+  console.log("📎 File Paths:", {
+    photoPath,
+    aadharPath,
+    panPath,
+    licensePath,
+  });
+
+  // ================= BOOLEAN CONVERT =================
+  const convertBool = (val) => val === "true" || val === true;
+
+  // ================= JSON PARSE =================
+  let parsedTournaments = [];
+  let parsedMOM = [];
+  let parsedMOS = [];
+
+  try {
+    parsedTournaments = tournaments ? JSON.parse(tournaments) : [];
+    parsedMOM = manOfTheMatchDetails
+      ? JSON.parse(manOfTheMatchDetails)
+      : [];
+    parsedMOS = manOfTheSeriesDetails
+      ? JSON.parse(manOfTheSeriesDetails)
+      : [];
+  } catch (err) {
+    console.log("❌ JSON Parse Error:", err.message);
+  }
+
+  console.log("🏏 Parsed Data:", {
+    parsedTournaments,
+    parsedMOM,
+    parsedMOS,
+  });
+
+// ================= CLEAN ENUM VALUES =================
+const cleanEnum = (val) => {
+  if (!val || val === "") return undefined;
+  return val;
+};
+
+const cleanedBattingHand = cleanEnum(battingHand);
+const cleanedBowlingArm = cleanEnum(bowlingArm);
+const cleanedBowlingType = cleanEnum(bowlingType);
+
+console.log("🧹 Cleaned Enums:", {
+  cleanedBattingHand,
+  cleanedBowlingArm,
+  cleanedBowlingType,
+});
+
+// ================= CREATE PLAYER =================
+console.log("💾 Creating player in DB...");
+
+const player = await Player.create({
+  fullName,
+  email,
+  address,
+  mobileNumber,
+  height,
+  weight,
+  aadharNumber,
+  dateOfBirth,
+
+  isBatsman: convertBool(isBatsman),
+  isBowler: convertBool(isBowler),
+
+  battingHand: cleanedBattingHand,
+  bowlingArm: cleanedBowlingArm,
+  bowlingType: cleanedBowlingType,
+
+  isWicketKeeper: convertBool(isWicketKeeper),
+
+  playedTournament: convertBool(playedTournament),
+  tournaments: parsedTournaments,
+
+  manOfTheMatch: convertBool(manOfTheMatch),
+  manOfTheMatchDetails: parsedMOM,
+
+  manOfTheSeries: convertBool(manOfTheSeries),
+  manOfTheSeriesDetails: parsedMOS,
+
+  documents: {
+    playerPhoto: photoPath,
+    aadharCard: aadharPath,
+    panCard: panPath,
+    drivingLicense: licensePath,
+  },
+
+  registrationStatus: "payment-pending",
+});
+
+  console.log("✅ Player Created:", player._id);
+
+  // ================= RESPONSE =================
+  res.status(201).json({
+    success: true,
+    message: "Player registered successfully. Please complete payment.",
+    player,
+  });
 });
 
 // Get player profile

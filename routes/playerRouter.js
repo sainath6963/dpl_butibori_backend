@@ -11,7 +11,7 @@ import { isAuthenticatedUser, authorizeRoles } from '../middlewares/authMiddlewa
 const router = express.Router();
 
 // User routes
-router.post('/register', isAuthenticatedUser, registerPlayer);
+router.post('/register', registerPlayer);
 router.get('/profile', isAuthenticatedUser, getPlayerProfile);
 router.put('/profile', isAuthenticatedUser, updatePlayerProfile);
 

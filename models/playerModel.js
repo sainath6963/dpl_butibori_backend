@@ -14,13 +14,14 @@ const tournamentSchema = new mongoose.Schema({
 const playerSchema = new mongoose.Schema({
 
     // 🔗 User Reference
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
+ // 🔗 User Reference (Optional — No Auth Registration)
+user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+},
 
-    // 📌 Basic Details
+    //  Basic Details
     fullName: {
         type: String,
         required: true,
@@ -126,7 +127,13 @@ payment: {
 
 registrationStatus: {
     type: String,
-    enum: ["pending", "payment-pending", "approved", "rejected"],
+    enum: [
+  "pending",
+  "payment-pending",
+  "registered",
+  "approved",
+  "rejected"
+],
     default: "payment-pending"
 },
 jerseyNumber: {
