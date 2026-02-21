@@ -5,10 +5,12 @@ const videoSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
     },
 
     description: {
       type: String,
+      trim: true,
     },
 
     youtubeUrl: {
@@ -23,6 +25,9 @@ const videoSchema = new mongoose.Schema(
 
     thumbnail: {
       type: String,
+      default: function () {
+        return `https://img.youtube.com/vi/${this.youtubeId}/mqdefault.jpg`;
+      },
     },
 
     category: {
@@ -40,23 +45,42 @@ const videoSchema = new mongoose.Schema(
       default: "Highlights",
     },
 
-    matchName: {
-      type: String,
+    // 🔥 NEW – Connect video to match
+    match: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Match",
+    },
+
+    // 🔥 NEW – Connect video to teams
+    teams: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Team",
+      },
+    ],
+
+    season: {
+      type: String, // Example: "DPL 2026"
+    },
+
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+
+    views: {
+      type: Number,
+      default: 0,
     },
 
     uploadedBy: {
-      type: String,
-      default: "Admin",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
 
     isPublished: {
       type: Boolean,
       default: true,
-    },
-
-    uploadDate: {
-      type: Date,
-      default: Date.now,
     },
   },
   { timestamps: true }

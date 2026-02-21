@@ -21,20 +21,19 @@ app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
 
-// Use routes
-app.use('/api/auth', authRouter);
-app.use('/api/users', userRouter);
-app.use('/api/players', playerRouter);
-app.use('/api/payments', paymentRouter);
-app.use('/api/webhook', webhookRouter);
-app.use("/api/videos", videoRoutes);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/users', userRouter);
+app.use('/api/v1/players', playerRouter);
+app.use('/api/v1/payments', paymentRouter);
+app.use('/api/v1/webhook', webhookRouter);
+app.use("/api/v1/videos", videoRoutes);
 
-// Health check route
+// Health check route (keep without v1 if you want)
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,
