@@ -129,6 +129,11 @@ registrationStatus: {
     enum: ["pending", "payment-pending", "approved", "rejected"],
     default: "payment-pending"
 },
+jerseyNumber: {
+    type: Number,
+    unique: true,
+    sparse: true
+},
     createdAt: {
         type: Date,
         default: Date.now
