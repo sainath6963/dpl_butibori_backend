@@ -8,7 +8,7 @@ import catchAsyncErrors from '../middlewares/catchAsyncErrors.js';
 import ErrorHandler from '../utils/errorHandler.js';
 
 // Registration fee amount (in INR)
-const REGISTRATION_FEE = 5; // Change as needed
+const REGISTRATION_FEE = 506; // Change as needed
 
 // Create payment order
 export const createPaymentOrder = catchAsyncErrors(async (req, res, next) => {
