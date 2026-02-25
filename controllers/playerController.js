@@ -4,6 +4,8 @@ import catchAsyncErrors from '../middlewares/catchAsyncErrors.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import path from "path";
 import fs from "fs";
+
+
 export const registerPlayer = catchAsyncErrors(async (req, res, next) => {
   const traceId = `REG-${Date.now()}`;
 console.log(`\n==============================`);
@@ -150,51 +152,15 @@ console.log("🧹 Cleaned Enums:", {
 });
 
 // ================= CREATE PLAYER =================
-console.log(`💾 [${traceId}] ABOUT TO CREATE PLAYER`);
-console.log(`📦 [${traceId}] registrationStatus = payment-pending`);
+// ================= BLOCK DIRECT CREATION =================
+console.log(`❌ [${traceId}] BLOCKED — Player cannot be created before payment`);
 
-const player = await Player.create({
-  fullName,
-  email,
-  address,
-  mobileNumber,
-  height,
-  weight,
-  aadharNumber,
-  dateOfBirth,
-
-  isBatsman: convertBool(isBatsman),
-  isBowler: convertBool(isBowler),
-
-  battingHand: cleanedBattingHand,
-  bowlingArm: cleanedBowlingArm,
-  bowlingType: cleanedBowlingType,
-
-  isWicketKeeper: convertBool(isWicketKeeper),
-
-  playedTournament: convertBool(playedTournament),
-  tournaments: parsedTournaments,
-
-  manOfTheMatch: convertBool(manOfTheMatch),
-  manOfTheMatchDetails: parsedMOM,
-
-  manOfTheSeries: convertBool(manOfTheSeries),
-  manOfTheSeriesDetails: parsedMOS,
-
-  documents: {
-    playerPhoto: photoPath,
-    aadharCard: aadharPath,
-    panCard: panPath,
-    drivingLicense: licensePath,
-  },
-
-  registrationStatus: "payment-pending",
+return res.status(400).json({
+  success: false,
+  message: "Player will be created only after successful payment."
 });
 
-  console.log(`🎉 [${traceId}] PLAYER CREATED ID:`, player._id);
-console.log(`📊 [${traceId}] FINAL STATUS:`, player.registrationStatus);
-console.log(`==============================\n`);
-
+// ================= BLOCK DIRECT CREATION =================
   // ================= RESPONSE =================
   res.status(201).json({
     success: true,
