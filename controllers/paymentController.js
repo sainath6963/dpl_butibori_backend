@@ -97,7 +97,20 @@ payment.paidAt = Date.now();
 payment.paymentMethod = paymentDetails.method;
 
 await payment.save();
+// 🚨 ADD THIS BLOCK HERE (VERY IMPORTANT)
+if (payment.status !== "paid") {
+    console.log("❌ Payment not paid — skipping player creation");
+    return next(new ErrorHandler("Payment not completed", 400));
+}
 
+// 🚨 ALSO ADD DUPLICATE CHECK
+if (payment.player) {
+    console.log("⚠️ Player already exists for this payment");
+    return res.status(200).json({
+        success: true,
+        message: "Player already created"
+    });
+}
 // ================= CREATE PLAYER AFTER PAYMENT =================
 
 const formData = payment.metadata.formData;
