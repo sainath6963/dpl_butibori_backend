@@ -5,7 +5,8 @@ import {
     getPaymentStatus,
     getUserPayments,
     getAllPayments,
-    processRefund
+    processRefund,
+    updatePaymentStatus 
 } from '../controllers/paymentController.js';
 import { isAuthenticatedUser, authorizeRoles } from '../middlewares/authMiddleware.js';
 
@@ -16,6 +17,8 @@ router.post('/create-order', createPaymentOrder);
 router.post('/verify', isAuthenticatedUser, verifyPayment);
 router.get('/status/:id', isAuthenticatedUser, getPaymentStatus);
 router.get('/my-payments',  getUserPayments);
+
+router.patch('/status/:paymentId', updatePaymentStatus);
 
 // Admin routes
 router.get('/admin/all', isAuthenticatedUser, authorizeRoles('admin'), getAllPayments);

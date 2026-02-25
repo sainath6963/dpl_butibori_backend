@@ -293,3 +293,40 @@ export const processRefund = catchAsyncErrors(async (req, res, next) => {
         refund
     });
 });
+
+// ================= UPDATE PAYMENT STATUS (for cancellations) =================
+export const updatePaymentStatus = catchAsyncErrors(async (req, res, next) => {
+  const { paymentId } = req.params;
+  const { status } = req.body;
+
+  // Validate status
+  const validStatuses = ['created', 'attempted', 'paid', 'failed', 'cancelled'];
+  if (!validStatuses.includes(status)) {
+    return next(new ErrorHandler('Invalid status value', 400));
+  }
+
+  const payment = await Payment.findById(paymentId);
+  
+  if (!payment) {
+    return next(new ErrorHandler('Payment not found', 404));
+  }
+
+  // Only allow updating if status is still 'created'
+  if (payment.status !== 'created') {
+    return next(new ErrorHandler(`Cannot update payment status from ${payment.status} to ${status}`, 400));
+  }
+
+  payment.status = status; // 'cancelled' or 'failed'
+  await payment.save();
+
+  console.log(`✅ Payment ${paymentId} status updated to ${status}`);
+
+  res.status(200).json({
+    success: true,
+    message: 'Payment status updated successfully',
+    payment: {
+      id: payment._id,
+      status: payment.status
+    }
+  });
+});
