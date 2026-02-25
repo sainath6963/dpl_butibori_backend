@@ -52,12 +52,18 @@ export const verifyPayment = catchAsyncErrors(async (req, res, next) => {
     } = req.body;
 
     // Find payment
-  const payment = await Payment.findById(paymentId)
-    .populate('player');
+ // Find payment
+const payment = await Payment.findById(paymentId)
+  .populate('player');
 
-    if (!payment) {
-        return next(new ErrorHandler('Payment record not found', 404));
-    }
+if (!payment) {
+    return next(new ErrorHandler('Payment record not found', 404));
+}
+
+// 🔥 ADD THIS CHECK
+if (payment.status === "paid") {
+    return next(new ErrorHandler('Payment already verified', 400));
+}
 
     // Verify signature
     const isValid = razorpayService.verifyPaymentSignature(
@@ -73,16 +79,24 @@ export const verifyPayment = catchAsyncErrors(async (req, res, next) => {
     }
 
     // Update payment
-    payment.razorpayPaymentId = razorpayPaymentId;
-    payment.razorpaySignature = razorpaySignature;
-    payment.status = 'paid';
-    payment.paidAt = Date.now();
+   // Get payment details from Razorpay
+const paymentDetails = await razorpayService.getPaymentDetails(razorpayPaymentId);
 
-    // Get payment details from Razorpay
-    const paymentDetails = await razorpayService.getPaymentDetails(razorpayPaymentId);
-    payment.paymentMethod = paymentDetails.method;
-    
+//  ADD THIS CHECK (VERY IMPORTANT)
+if (paymentDetails.status !== "captured") {
+    payment.status = "failed";
     await payment.save();
+    return next(new ErrorHandler("Payment not captured", 400));
+}
+
+// Update payment AFTER capture confirmation
+payment.razorpayPaymentId = razorpayPaymentId;
+payment.razorpaySignature = razorpaySignature;
+payment.status = 'paid';
+payment.paidAt = Date.now();
+payment.paymentMethod = paymentDetails.method;
+
+await payment.save();
 
 // ================= CREATE PLAYER AFTER PAYMENT =================
 
