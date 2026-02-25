@@ -5,7 +5,15 @@ import ErrorHandler from '../utils/errorHandler.js';
 import path from "path";
 import fs from "fs";
 export const registerPlayer = catchAsyncErrors(async (req, res, next) => {
-  console.log("📥 Incoming Register Player Request");
+  const traceId = `REG-${Date.now()}`;
+console.log(`\n==============================`);
+console.log(`🚀 [${traceId}] REGISTER PLAYER CALLED`);
+console.log(`==============================`);
+
+
+console.log(`📡 [${traceId}] URL →`, req.originalUrl);
+console.log(`📡 [${traceId}] METHOD →`, req.method);
+console.log(`📡 [${traceId}] HEADERS →`, req.headers["user-agent"]);
 
   // ================= BODY =================
   console.log("🧾 req.body →", req.body);
@@ -142,7 +150,8 @@ console.log("🧹 Cleaned Enums:", {
 });
 
 // ================= CREATE PLAYER =================
-console.log("💾 Creating player in DB...");
+console.log(`💾 [${traceId}] ABOUT TO CREATE PLAYER`);
+console.log(`📦 [${traceId}] registrationStatus = payment-pending`);
 
 const player = await Player.create({
   fullName,
@@ -182,7 +191,9 @@ const player = await Player.create({
   registrationStatus: "payment-pending",
 });
 
-  console.log("✅ Player Created:", player._id);
+  console.log(`🎉 [${traceId}] PLAYER CREATED ID:`, player._id);
+console.log(`📊 [${traceId}] FINAL STATUS:`, player.registrationStatus);
+console.log(`==============================\n`);
 
   // ================= RESPONSE =================
   res.status(201).json({
