@@ -56,21 +56,25 @@ async function handlePaymentCaptured(payload) {
     // Find payment record
     const payment = await Payment.findOne({ razorpayOrderId: orderId });
 
-    if (payment && payment.status !== 'paid') {
-        payment.razorpayPaymentId = paymentId;
-        payment.status = 'paid';
-        payment.paidAt = new Date();
-        await payment.save();
-
-        // Update player status
-        const player = await Player.findById(payment.player);
-        if (player) {
-            player.registrationStatus = 'registered';
-            await player.save();
-        }
-
-        console.log(`Payment captured: ${paymentId}`);
+    if (!payment) {
+        console.log(`Payment record not found for order: ${orderId}`);
+        return;
     }
+
+    // Prevent duplicate updates
+    if (payment.status === 'paid') {
+        console.log(`Payment already marked paid: ${paymentId}`);
+        return;
+    }
+
+    // Only update status — DO NOT create player
+    payment.razorpayPaymentId = paymentId;
+    payment.status = 'captured'; // webhook capture state
+    payment.paidAt = new Date();
+
+    await payment.save();
+
+    console.log(`Payment captured via webhook: ${paymentId}`);
 }
 
 // Handle payment failed
