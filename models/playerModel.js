@@ -41,7 +41,7 @@ user: {
 
     mobileNumber: {
         type: String,
-        required: true,
+          required: false,
         match: [/^[0-9]{10}$/, "Invalid mobile number"]
     },
 
@@ -50,13 +50,13 @@ user: {
 
     aadharNumber: {
         type: String,
-        required: true,
+        required: false,
         match: [/^[0-9]{12}$/, "Invalid Aadhar number"]
     },
 
     dateOfBirth: {
         type: Date,
-        required: true
+         required: false
     },
 
     // 🏏 Playing Type
