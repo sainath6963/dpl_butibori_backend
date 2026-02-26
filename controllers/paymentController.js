@@ -8,7 +8,7 @@ import catchAsyncErrors from '../middlewares/catchAsyncErrors.js';
 import ErrorHandler from '../utils/errorHandler.js';
 
 // Registration fee amount (in INR)
-const REGISTRATION_FEE = 506; // Change as needed
+const REGISTRATION_FEE = 1; // Change as needed
 
 // Create payment order
 export const createPaymentOrder = catchAsyncErrors(async (req, res, next) => {
@@ -74,6 +74,7 @@ if (payment.status === "paid") {
 
     if (!isValid) {
         payment.status = 'failed';
+payment.paymentResult = 'failed';
         await payment.save();
         return next(new ErrorHandler('Invalid payment signature', 400));
     }
@@ -84,7 +85,8 @@ const paymentDetails = await razorpayService.getPaymentDetails(razorpayPaymentId
 
 //  ADD THIS CHECK (VERY IMPORTANT)
 if (paymentDetails.status !== "captured") {
-    payment.status = "failed";
+   payment.status = "failed";
+payment.paymentResult = "failed";
     await payment.save();
     return next(new ErrorHandler("Payment not captured", 400));
 }
@@ -93,6 +95,7 @@ if (paymentDetails.status !== "captured") {
 payment.razorpayPaymentId = razorpayPaymentId;
 payment.razorpaySignature = razorpaySignature;
 payment.status = 'paid';
+payment.paymentResult = 'success';
 payment.paidAt = Date.now();
 payment.paymentMethod = paymentDetails.method;
 
@@ -298,6 +301,9 @@ export const processRefund = catchAsyncErrors(async (req, res, next) => {
 export const updatePaymentStatus = catchAsyncErrors(async (req, res, next) => {
   const { paymentId } = req.params;
   const { status } = req.body;
+
+
+  console.log("🔍 Looking for payment with ID:", paymentId); 
 
   // Validate status
   const validStatuses = ['created', 'attempted', 'paid', 'failed', 'cancelled'];

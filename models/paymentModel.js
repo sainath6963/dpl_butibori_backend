@@ -8,7 +8,6 @@ const paymentSchema = new mongoose.Schema({
         default: null
     },
 
-    // Linked AFTER payment
     player: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Player',
@@ -39,10 +38,18 @@ const paymentSchema = new mongoose.Schema({
         default: 'INR'
     },
 
+    // Razorpay lifecycle status
     status: {
         type: String,
-        enum: ['created', 'attempted', 'paid', 'failed', 'refunded'],
+        enum: ['created', 'attempted', 'paid', 'failed', 'refunded', 'cancelled'],
         default: 'created'
+    },
+
+    // ⭐ ADD THIS FIELD (YOUR REQUIREMENT)
+    paymentResult: {
+        type: String,
+        enum: ['success', 'failed', 'pending'],
+        default: 'pending'
     },
 
     paymentMethod: String,
@@ -52,7 +59,6 @@ const paymentSchema = new mongoose.Schema({
         default: 'Cricket Match Registration Fee'
     },
 
-    // ⭐ Store full form here
     metadata: {
         formData: Object
     },

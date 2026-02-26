@@ -12,16 +12,31 @@ import { isAuthenticatedUser, authorizeRoles } from '../middlewares/authMiddlewa
 
 const router = express.Router();
 
-// User routes
-router.post('/create-order', createPaymentOrder);
-router.post('/verify', isAuthenticatedUser, verifyPayment);
-router.get('/status/:id', isAuthenticatedUser, getPaymentStatus);
-router.get('/my-payments',  getUserPayments);
+// ================= USER =================
 
+// Create order
+router.post('/create-order', createPaymentOrder);
+
+// Verify payment
+router.post('/verify', verifyPayment);
+
+// Update payment status (cancel / failed)
 router.patch('/status/:paymentId', updatePaymentStatus);
 
-// Admin routes
+// Get single payment
+router.get('/status/:id', getPaymentStatus);
+
+// My payments
+router.get('/my-payments', getUserPayments);
+
+// ================= ADMIN =================
+
 router.get('/admin/all', isAuthenticatedUser, authorizeRoles('admin'), getAllPayments);
-router.post('/admin/refund/:id', isAuthenticatedUser, authorizeRoles('admin'), processRefund);
+
+router.post('/admin/refund/:id',
+  isAuthenticatedUser,
+  authorizeRoles('admin'),
+  processRefund
+);
 
 export default router;
