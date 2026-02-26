@@ -25,8 +25,8 @@ import connectDatabase from './config/database.js';
 /******************************************************************
  * Debug ENV (optional)
  ******************************************************************/
-console.log("RAZORPAY KEY:", process.env.RAZORPAY_KEY_ID);
-console.log("SECRET:", process.env.RAZORPAY_KEY_SECRET);
+//console.log("RAZORPAY KEY:", process.env.RAZORPAY_KEY_ID);
+//console.log("SECRET:", process.env.RAZORPAY_KEY_SECRET);
 
 /******************************************************************
  * Handle Uncaught Exceptions

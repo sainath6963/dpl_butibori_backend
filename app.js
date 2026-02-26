@@ -11,6 +11,7 @@ import userRouter from './routes/userRouter.js';
 import playerRouter from './routes/playerRouter.js';
 import paymentRouter from './routes/paymentRouter.js';
 import webhookRouter from './routes/webhookRouter.js';
+import uploadimgRouter from './routes/uploadimgRouter.js';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/v1/players', playerRouter);
 app.use('/api/v1/payments', paymentRouter);
 app.use('/api/v1/webhook', webhookRouter);
 app.use("/api/v1/videos", videoRoutes);
+app.use("/api/v1/upload", uploadimgRouter);
 
 // Health check route (keep without v1 if you want)
 app.get('/api/health', (req, res) => {
