@@ -13,22 +13,33 @@ const videoSchema = new mongoose.Schema(
       trim: true,
     },
 
-    youtubeUrl: {
-      type: String,
-      required: true,
-    },
+   videoUrl: {
+  type: String,
+  required: true,
+},
 
-    youtubeId: {
-      type: String,
-      required: true,
-    },
+   platform: {
+  type: String,
+  enum: ["youtube", "instagram", "facebook"],
+  required: true,
+},
 
-    thumbnail: {
-      type: String,
-      default: function () {
-        return `https://img.youtube.com/vi/${this.youtubeId}/mqdefault.jpg`;
-      },
-    },
+videoId: {
+  type: String,
+},
+
+thumbnail: {
+  type: String,
+  default: function () {
+    // Auto thumbnail only for YouTube
+    if (this.platform === "youtube" && this.videoId) {
+      return `https://img.youtube.com/vi/${this.videoId}/mqdefault.jpg`;
+    }
+
+    // fallback thumbnail
+    return "https://via.placeholder.com/640x360?text=Video";
+  },
+},
 
     category: {
       type: String,
