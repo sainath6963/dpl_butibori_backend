@@ -46,12 +46,15 @@ export const createVideoService = async (data) => {
 export const getAllVideosService = async (filters = {}) => {
   try {
     console.log("🔍 Fetching videos with filters:", filters);
-    
+
     const query = { isPublished: true, ...filters };
-    
-    const videos = await Video.find(query).sort({ uploadDate: -1 });
+
+    // ✅ newest videos first
+    const videos = await Video.find(query)
+      .sort({ createdAt: -1 });
+
     console.log(`✅ Found ${videos.length} videos`);
-    
+
     return videos;
   } catch (error) {
     console.error("❌ Error in getAllVideosService:", error);
