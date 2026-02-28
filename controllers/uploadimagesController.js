@@ -137,3 +137,87 @@ export const uploadImageforSeasonTwo = async (req, res) => {
     });
   }
 };
+
+
+export const getSeasonOneImages = async (req, res) => {
+  try {
+    const uploadsDir = path.join(process.cwd(), "uploads/SeasonOne");
+
+    if (!fs.existsSync(uploadsDir)) {
+      return res.status(404).json({
+        success: false,
+        message: "SeasonOne folder not found",
+      });
+    }
+
+    const files = fs.readdirSync(uploadsDir);
+
+    if (!files.length) {
+      return res.status(200).json({
+        success: true,
+        images: [],
+        message: "No images found",
+      });
+    }
+
+    // Convert file names to URLs
+    const imageUrls = files.map(
+      (file) => `/uploads/SeasonOne/${file}`
+    );
+
+    res.status(200).json({
+      success: true,
+      count: imageUrls.length,
+      images: imageUrls,
+    });
+
+  } catch (error) {
+    console.error("❌ Fetch Images Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+export const getSeasonTwoImages = async (req, res) => {
+  try {
+    const uploadsDir = path.join(process.cwd(), "uploads/SeasonTwo");
+
+    if (!fs.existsSync(uploadsDir)) {
+      return res.status(404).json({
+        success: false,
+        message: "SeasonTwo folder not found",
+      });
+    }
+
+    const files = fs.readdirSync(uploadsDir);
+
+    if (!files.length) {
+      return res.status(200).json({
+        success: true,
+        images: [],
+        message: "No images found",
+      });
+    }
+
+    // Convert file names to URLs
+    const imageUrls = files.map(
+      (file) => `/uploads/SeasonTwo/${file}`
+    );
+
+    res.status(200).json({
+      success: true,
+      count: imageUrls.length,
+      images: imageUrls,
+    });
+
+  } catch (error) {
+    console.error("❌ Fetch SeasonTwo Images Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
