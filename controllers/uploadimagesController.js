@@ -220,4 +220,92 @@ export const getSeasonTwoImages = async (req, res) => {
       message: "Internal server error",
     });
   }
+
+
+
+  
+};
+
+
+
+export const deleteSeasonOneImage = async (req, res) => {
+  try {
+    const { imageName } = req.params;
+
+    if (!imageName) {
+      return res.status(400).json({
+        success: false,
+        message: "Image name is required",
+      });
+    }
+
+    const filePath = path.join(
+      process.cwd(),
+      "uploads/SeasonOne",
+      imageName
+    );
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "Image not found",
+      });
+    }
+
+    fs.unlinkSync(filePath);
+
+    res.status(200).json({
+      success: true,
+      message: "Season One image deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("❌ Delete SeasonOne Image Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+
+export const deleteSeasonTwoImage = async (req, res) => {
+  try {
+    const { imageName } = req.params;
+
+    if (!imageName) {
+      return res.status(400).json({
+        success: false,
+        message: "Image name is required",
+      });
+    }
+
+    const filePath = path.join(
+      process.cwd(),
+      "uploads/SeasonTwo",
+      imageName
+    );
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "Image not found",
+      });
+    }
+
+    fs.unlinkSync(filePath);
+
+    res.status(200).json({
+      success: true,
+      message: "Season Two image deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("❌ Delete SeasonTwo Image Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
